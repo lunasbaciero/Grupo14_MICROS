@@ -25,17 +25,10 @@
 /* USER CODE BEGIN Includes */
 #include "string.h"
 #include "i2c_lcd.h" //Librería de https://github.com/alixahedi/i2c-lcd-stm32?tab=readme-ov-file#usage
-#include <stdint.h>
-#include <string.h> // DMA
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-volatile uint8_t estado = 0; 
-
-
-// Variables globales
-volatile uint32_t valpot = 0;			// Lectura de potenciómetro
 
 //Lista del catálogo
 typedef struct catalogo{
@@ -54,10 +47,7 @@ typedef struct catalogo{
 #define TAM_BUFFER_TEXT 1024
 #define TAM_BUFFER_AUDIO 1024
 #define TAM_STRING 100
-#define MAX_SONGS 10		// Tamaño máximo de lista de canciones
-#define MAX_SONG_SIZE 4096 	// Tamaño máximo por canción
-volatile uint8_t songData[MAX_SONG_SIZE]; // Guardar datos de canción cargada
-volatile uint8_t FLAGBOTON1;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -70,7 +60,6 @@ ADC_HandleTypeDef hadc1;
 
 DAC_HandleTypeDef hdac;
 DMA_HandleTypeDef hdma_dac1;
-DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c1;
 
@@ -122,19 +111,13 @@ void EliminarCatalogo(catalogo** cat);
 catalogo* MostrarCatalogo(catalogo cat);
 void EnviarLetra(char* buffer_letra);
 
-// Botones y potenciómetro
-void Button1Pressed(void);
-void Button2Pressed(void);
-void Button3Pressed(void);
-void SetEstado(uint8_t e1, uint8_t e2, uint8_t e3); // Sustituir por máquina de estados (?
-void LeerPotenciometro(void);
-void setvolumen(uint8_t volume);
-int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number)
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+
 uint8_t MontarUSB(void){
 	fd_USB = f_mount(&FatFs, "", 0);  // Monta el dispositivo USB
 
@@ -321,7 +304,6 @@ void TIM6_IRQHandler(void) {
     tiempo_actual += 1;
 
 }
-
 volatile int button_int=0;
 
 
@@ -361,15 +343,12 @@ volatile int button_int=0;
 	// Manejo del botón 2
 	void Button2Pressed(){
 	  if(estado==1){	// Botón 2 en selección de canción: seleccionar
-		  setEstado(0,1,0);// *** Cambiar de estado a música reproduciendo
 		  Play(IndiceCanciones);
 	  }
-	  else if(estado==2)	// Botón 2 en reproducción de canción: pausar
-		  setEstado(0,0,1);// *** Cambiar de estado a reproducción detenida
-		  Stop();
-	  else if(estado==3)	// Botón 2 en reproducción parada: Continuar (resume)
-		  setEstado(0,1,0);// *** Cambiar de estado a música reproduciendo
-		  Resume();
+	  else if(estado==2){	// Botón 2 en reproducción de canción: pausar
+	  }
+	  else if(estado==3){	// Botón 2 en reproducción parada: Continuar (resume)
+	  }
 }
 
 	// Manejo del botón 3
@@ -377,21 +356,12 @@ volatile int button_int=0;
 	  if(estado==1){	// Botón 3 en selección de canción: avanza hacia delante en la lista
 		  // AVanzar de canción
 	  }
-	  else if(estado==2)	// Botón 3 en reproducción de canción: regreso a selección
-		  setEstado(1,0,0);// *** Cambio de estado a selección de canción
-		  Stop();
-	  else if(estado==3)	// Botón 3 en reproducción parada: regreso a selección
-		  setEstado(1,0,0);// *** Cambio de estado a selección de canción
-		  Stop();
+	  else if(estado==2){	// Botón 3 en reproducción de canción: regreso a selección
+	  }
+	  else if(estado==3){	// Botón 3 en reproducción parada: regreso a selección
+	  }
 }
 
-
-	// Sustituto de máquina de estado
-	void setEstado(uint8_t e1, uint8_t e2, uint8_t e3) {
-	    estado_1 = e1;
-	    estado_2 = e2;
-	    estado_3 = e3;
-	}
 
 	  // Lectura de potenciómetro (volumen)
 	  void LeerPotenciometro(void){
@@ -484,61 +454,62 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
-
     /* USER CODE BEGIN 3 */
-  
-	         switch(estado){
-        case 0: //Main menu
-            printf("Main menu\n");
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
-              
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-            //Intriducir código LDC
-        break;
-        
-        case 1: //Menu canciones USB - Como stop de cancion actual
-            printf("Songs list\n");
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
-            
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
-            //Intriducir código LDC y micro
-        break;
-        
-        case 2: //Play cancion seleccionada
-            printf("Play song\n");
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
-            
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
-            //Intriducir código LDC y micro
-        break;
-        
-        case 3: //Pause cancion seleccionada
-            printf("Pause song\n");
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
-            
-            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
-            //Intriducir código LDC y micro
-        break;
-        
-        default: //Volver a pulsar un botón, la has liado
-        break;
-    }
-}
+
+
+    switch(estado){
+           case 0: //Main menu
+               printf("Main menu\n");
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+
+               HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+               //Intriducir código LDC
+           break;
+
+           case 1: //Menu canciones USB - Como stop de cancion actual
+               printf("Songs list\n");
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+
+               HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+               //Intriducir código LDC y micro
+           break;
+
+           case 2: //Play cancion seleccionada
+               printf("Play song\n");
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+
+               HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+               //Intriducir código LDC y micro
+           break;
+
+           case 3: //Pause cancion seleccionada
+               printf("Pause song\n");
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+
+               HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+               //Intriducir código LDC y micro
+           break;
+
+           default: //Volver a pulsar un botón, la has liado
+           break;
+       }
+  }
   /* USER CODE END 3 */
 }
 
@@ -793,7 +764,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : PA0 PA1 PA2 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD12 PD13 PD14 PD15 */
