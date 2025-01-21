@@ -31,7 +31,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-volatile uint8_t estado = 1; 
+volatile uint8_t estado = 0; 
+
 
 // Variables globales
 volatile uint8_t IndiceCanciones = 0; 	// Identificador de canciones
@@ -350,7 +351,7 @@ volatile int button_int=0;
 
 	// Manejo del botón 1
 	void Button1Pressed(){
-	  if(estado1){	// Botón 1 en selección de canción: avanza hacia atrás en la lista
+	  if(estado==1){	// Botón 1 en selección de canción: avanza hacia atrás en la lista
 		  // Retroceder de canción
 	  }
 	  //else if(estado2)	// Botón 1 en reproducción de canción: nada
@@ -361,27 +362,27 @@ volatile int button_int=0;
 
 	// Manejo del botón 2
 	void Button2Pressed(){
-	  if(estado1){	// Botón 2 en selección de canción: seleccionar
+	  if(estado==1){	// Botón 2 en selección de canción: seleccionar
 		  setEstado(0,1,0);// *** Cambiar de estado a música reproduciendo
 		  Play(IndiceCanciones);
 	  }
-	  else if(estado2)	// Botón 2 en reproducción de canción: pausar
+	  else if(estado==2)	// Botón 2 en reproducción de canción: pausar
 		  setEstado(0,0,1);// *** Cambiar de estado a reproducción detenida
 		  Stop();
-	  else if(estado3)	// Botón 2 en reproducción parada: Continuar (resume)
+	  else if(estado==3)	// Botón 2 en reproducción parada: Continuar (resume)
 		  setEstado(0,1,0);// *** Cambiar de estado a música reproduciendo
 		  Resume();
 }
 
 	// Manejo del botón 3
 	void Button3Pressed(){
-	  if(estado1){	// Botón 3 en selección de canción: avanza hacia delante en la lista
+	  if(estado==1){	// Botón 3 en selección de canción: avanza hacia delante en la lista
 		  // AVanzar de canción
 	  }
-	  else if(estado2)	// Botón 3 en reproducción de canción: regreso a selección
+	  else if(estado==2)	// Botón 3 en reproducción de canción: regreso a selección
 		  setEstado(1,0,0);// *** Cambio de estado a selección de canción
 		  Stop();
-	  else if(estado3)	// Botón 3 en reproducción parada: regreso a selección
+	  else if(estado==3)	// Botón 3 en reproducción parada: regreso a selección
 		  setEstado(1,0,0);// *** Cambio de estado a selección de canción
 		  Stop();
 }
@@ -488,8 +489,58 @@ int main(void)
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
+
     /* USER CODE BEGIN 3 */
   }
+	         switch(estado){
+        case 0: //Main menu
+            printf("Main menu\n");
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+              
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+            //Intriducir código LDC
+        break;
+        
+        case 1: //Menu canciones USB - Como stop de cancion actual
+            printf("Songs list\n");
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+            
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+            //Intriducir código LDC y micro
+        break;
+        
+        case 2: //Play cancion seleccionada
+            printf("Play song\n");
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+            
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+            //Intriducir código LDC y micro
+        break;
+        
+        case 3: //Pause cancion seleccionada
+            printf("Pause song\n");
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+            
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+            //Intriducir código LDC y micro
+        break;
+        
+        default: //Volver a pulsar un botón, la has liado
+        break;
+    }
+}
   /* USER CODE END 3 */
 }
 
