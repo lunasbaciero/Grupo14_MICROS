@@ -93,6 +93,8 @@ volatile uint8_t FLAG_SIGUIENTE = 0;
 volatile uint8_t FLAG_ANTERIOR = 0;
 volatile int button_int=0;
 volatile estado = 0;
+volatile uint8_t valpot;
+volatile uint8_t ma_tranfer_complete_flag;
 
 /* USER CODE END PV */
 
@@ -201,6 +203,11 @@ uint8_t ReproducirFicheroSonido(){
 	}
 	return 0;
 }
+
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypedef *hdac){
+	dma_transfer_complete_flag = 1; // Actualizar flag
+}
+
 
 catalogo* GenerarCatalogo(char* buffer_catalogo){
 	catalogo* cat, *cat_anterior;
@@ -333,7 +340,7 @@ void TIM6_IRQHandler(void) {
 
 
 	// Definición de funciones declaradas
-	void HAL_GPIO_EXTI_Callback(uint8_t GPIO_Pin){
+	void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	  if (GPIO_Pin == GPIO_PIN_0){ 		// Botón 1: Configurado en PA0
 		  Button1Pressed();
 	  }
