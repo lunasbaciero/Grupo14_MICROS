@@ -490,7 +490,7 @@ uint8_t error;
 
     switch(estado){
            case 0: //Main menu
-               printf("Main menu\n");
+               //printf("Main menu\n");
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
