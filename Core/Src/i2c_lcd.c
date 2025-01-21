@@ -4,7 +4,6 @@
  */
 
 #include "i2c_lcd.h"
-#include <stdint.h>
 
 /**
  * @brief  Sends a command to the LCD.
