@@ -35,9 +35,7 @@ volatile uint8_t estado = 0;
 
 
 // Variables globales
-volatile uint8_t IndiceCanciones = 0; 	// Identificador de canciones
 volatile uint32_t valpot = 0;			// Lectura de potenciómetro
-volatile uint8_t CancionDetenida = 0; 	// Flag canción detenida
 
 //Lista del catálogo
 typedef struct catalogo{
