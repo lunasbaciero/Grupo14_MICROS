@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "string.h"
 #include "i2c_lcd.h" //Librería de https://github.com/alixahedi/i2c-lcd-stm32?tab=readme-ov-file#usage
+#include <stm32f4xx_hal_i2c.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -202,22 +203,22 @@ uint8_t ReproducirFicheroSonido(){
 }
 
 catalogo* GenerarCatalogo(char* buffer_catalogo){
-	catalogo* cat, cat_anterior;
+	catalogo* cat, *cat_anterior;
 	catalogo* primer_cat;
 
 	char n[TAM_STRING];
 
 	//Creamos la lista
 
-	n = strtok(texto_copia, "\n");
+	strncpy(n, strtok(texto_copia, "\n"), TAM_STRING);
 	while (n != NULL) {
 
 		if(cat == NULL){
-			cat = malloc(sizeof(catalogo));
+			cat = (catologo*)malloc(sizeof(catalogo));
 			
-			cat->nombre = "";
-			cat->nombre_mp4 = "./audio/";
-			cat->nombre_txt = "./letra/";
+			strncpy(cat->nombre,"");
+			strncpy(cat->nombre_mp4,"./audio/");
+			strncpy(cat->nombre_txt,"./letra/");
 			cat->siguiente = NULL;
 			cat->anterior = NULL;
 			
@@ -229,20 +230,24 @@ catalogo* GenerarCatalogo(char* buffer_catalogo){
 			cat->siguiente = malloc(sizeof(catalogo));
 			cat = cat->siguiente;
 
+			strncpy(cat->nombre,"");
+			strncpy(cat->nombre_mp4,"./audio/");
+			strncpy(cat->nombre_txt,"./letra/");
+			cat->siguiente = NULL;
 			cat->anterior = cat_anterior;
 		}
 
 		//Asignacion en la lista circular
-		cat->nombre = n;
+		strncpy(cat->nombre, n);
 
-		cat->nombre_mp4 = strcat(cat->nombre_mp4,n);
-		cat->nombre_mp4 = strcat(cat->nombre_mp4,".mp4");
+		strncpy(cat->nombre_mp4, strcat(cat->nombre_mp4, n), TAM_STRING);
+		strncpy(cat->nombre_mp4, strcat(cat->nombre_mp4,".mp4"), TAM_STRING);
 
-		cat->nombre_txt = strcat(cat->nombre_txt,n);
-		cat->nombre_txt = strcat(cat->nombre_txt,".txt");
+		strncpy(cat->nombre_txt, strcat(cat->nombre_txt,n), TAM_STRING);
+		strncpy(cat->nombre_txt, strcat(cat->nombre_txt,".txt"), TAM_STRING);
 
 	    // Obtener la siguiente línea
-	    n = strtok(NULL, "\n");
+	    strncpy(n, strtok(NULL, "\n"), TAM_STRING);
 	}
 
 	cat->siguiente = primer_cat;
@@ -252,7 +257,7 @@ catalogo* GenerarCatalogo(char* buffer_catalogo){
 }
 
 void EliminarCatalogo(catalogo** cat){
-	catalogo* siguiente, actual;
+	catalogo* siguiente, *actual;
 
 	//Deshacemos primero la estructura circular
 	actual = *cat;
@@ -299,15 +304,15 @@ void EnviarLetra(char* buffer_letra){
 	char t_deseado_str[TAM_STRING];
 
 	if(t_letra_actual == 0){
-		if(linea = "" || nueva_cancion == 1){
-			linea =  strtok(buffer_letra, "\n");
+		if(linea == "" || nueva_cancion == 1){
+			strncpy(linea, strtok(buffer_letra, "\n"), TAM_STRING);
 			nueva_cancion = 0;
 		}
 		else {
-			linea = strtok(buffer_letra, NULL);
+			strncpy(linea, strtok(buffer_letra, NULL), TAM_STRING);
 		}
 		//SACAR EL TIEMPO Y CONVERTIRLO
-			t_deseado_str = strncpy(t_deseado_str,linea,2);
+			strncpy(t_deseado_str,linea,2);
 			t_letra_deseado = (t_deseado_str[0]-'0')*10+(t_deseado_str[1]-'0');
 
 		lcd_gotoxy(&lcd1, 0, 1);
@@ -322,7 +327,7 @@ void EnviarLetra(char* buffer_letra){
 void TIM6_IRQHandler(void) {
     HAL_TIM_IRQHandler(&htim6);  // Llamada al manejador de interrupción
 
-    tiempo_actual += 1;
+    t_letra_actual += 1;
 
 }
 
