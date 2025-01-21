@@ -84,6 +84,13 @@ UINT bytesRead;		//Bytes leidos
 uint8_t t_letra_deseado; //tiempo que debe permanecer la letra (s)
 uint8_t t_letra_actual; //tiempo que lleva la letra en pantalla (s)
 uint8_t cambio_cancion; //Flag para indicar cambios de canción
+char buffer_texto[TAM_BUFFER_TEXT];
+catalogo *cat;
+
+// banderas
+volatile uint8_t FLAG_SIGUIENTE = 0;
+volatile uint8_t FLAG_ANTERIOR = 0;
+volatile int button_int=0;
 
 /* USER CODE END PV */
 
@@ -101,8 +108,8 @@ void MX_USB_HOST_Process(void);
 
 //USB y ficheros
 uint8_t MontarUSB(void);
-uint8_t AbrirFicheroTexto(char* nombre_fichero);
-uint8_t LeerFicheroTexto(char* buffer); //No es responsable del envio por pantalla LCD
+uint8_t AbrirFichero(char* nombre_fichero, FIL* file);
+uint8_t LeerFicheroTexto(FIL* file, char* buffer); //No es responsable del envio por pantalla LCD
 uint8_t ReproducirFicheroSonido(void); //También lo envía por DMA a la salida de audio.
 
 //Procesado de información de ficheros de texto
@@ -111,6 +118,14 @@ void EliminarCatalogo(catalogo** cat);
 catalogo* MostrarCatalogo(catalogo cat);
 void EnviarLetra(char* buffer_letra);
 
+// Botones y potenciómetro
+void Button1Pressed(void);
+void Button2Pressed(void);
+void Button3Pressed(void);
+void SetEstado(uint8_t e1, uint8_t e2, uint8_t e3); // Sustituir por máquina de estados (?
+void LeerPotenciometro(void);
+void setvolumen(uint8_t volume);
+int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number)
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -132,9 +147,9 @@ uint8_t MontarUSB(void){
 	return 0;
 }
 
-uint8_t AbrirFichero(char* nombre_fichero, FIL file){
+uint8_t AbrirFichero(char* nombre_fichero, FIL* file){
 
-	fd_USB = f_open(&file, nombre_fichero, FA_READ);
+	fd_USB = f_open(file, nombre_fichero, FA_READ);
 
 	if(fd_USB == FR_OK){
 		return 0;
@@ -147,7 +162,7 @@ uint8_t AbrirFichero(char* nombre_fichero, FIL file){
 	return 2; //Se considera 2 como error al abrir archivo (Puede ser interesante cambiarlo por un enum)
 }
 
-uint8_t LeerFicheroTexto(char* nombre_fichero, char* buffer){
+uint8_t LeerFicheroTexto(FIL* file, char* buffer){
 
 	fd_USB = f_read(&file, buffer, sizeof(buffer) - 1, &bytesRead);
 	if(fd_USB == FR_OK){
@@ -304,35 +319,25 @@ void TIM6_IRQHandler(void) {
     tiempo_actual += 1;
 
 }
-volatile int button_int=0;
 
 
 	// Definición de funciones declaradas
 	void HAL_GPIO_EXTI_Callback(uint8_t GPIO_Pin){
 	  if (GPIO_Pin == GPIO_PIN_0){ 		// Botón 1: Configurado en PA0
 		  Button1Pressed();
-		  boton1 = 1;
-		  boton2 = 0;
-		  boton3 = 0;
 	  }
 	  else if (GPIO_Pin == GPIO_PIN_1){	// Botón 2: Configurado en PA1
 		  Button2Pressed();
-	  	  boton2 = 1;
-	  	  boton1 = 0;
-	  	  boton3 = 0;
 	  }
 	  else if (GPIO_Pin == GPIO_PIN_2){	// Botón 3: Configurado en PA2
 		  Button3Pressed();
-	  	  boton3 = 1;
-	  	  boton1 = 0;
-	  	  boton2 = 0;
 	  }
 }
 
 	// Manejo del botón 1
 	void Button1Pressed(){
 	  if(estado==1){	// Botón 1 en selección de canción: avanza hacia atrás en la lista
-		  // Retroceder de canción
+		FLAG_ANTERIOR = 1;  // Retroceder de canción
 	  }
 	  //else if(estado2)	// Botón 1 en reproducción de canción: nada
 		  //Restart(); // Se mantiene en estado de reproducción
@@ -354,7 +359,7 @@ volatile int button_int=0;
 	// Manejo del botón 3
 	void Button3Pressed(){
 	  if(estado==1){	// Botón 3 en selección de canción: avanza hacia delante en la lista
-		  // AVanzar de canción
+		FLAG_SIGUIENTE = 1;  // AVanzar de canción
 	  }
 	  else if(estado==2){	// Botón 3 en reproducción de canción: regreso a selección
 	  }
@@ -470,6 +475,16 @@ int main(void)
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
 
                HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+		   if(MontarUSB() == 0){
+		   	estado = 1;
+			if(AbrirFicheroTexto("catalogo.txt", &texto)==0){
+				uint8_t error = LeerFicheroTexto(&texto, buffer_texto);
+				f_close(&texto);
+
+				cat = GenerarCatalogo(buffer_texto);
+			}
+			
+		   }
                //Intriducir código LDC
            break;
 
