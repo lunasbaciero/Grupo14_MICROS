@@ -83,7 +83,7 @@ UINT bytesRead;		//Bytes leidos
 //Tiempo
 uint8_t t_letra_deseado; //tiempo que debe permanecer la letra (s)
 uint8_t t_letra_actual; //tiempo que lleva la letra en pantalla (s)
-uint8_t cambio_cancion; //Flag para indicar cambios de canción
+volatile uint8_t nueva_cancion; //Flag para indicar cambios de canción
 char buffer_texto[TAM_BUFFER_TEXT];
 catalogo *cat;
 
@@ -91,6 +91,7 @@ catalogo *cat;
 volatile uint8_t FLAG_SIGUIENTE = 0;
 volatile uint8_t FLAG_ANTERIOR = 0;
 volatile int button_int=0;
+volatile estado = 0;
 
 /* USER CODE END PV */
 
@@ -181,7 +182,7 @@ uint8_t ReproducirFicheroSonido(){
 	static uint16_t buffer_audio[TAM_BUFFER_AUDIO];
 
 	if(dma_transfer_complete_flag){
-		fd_USB = f_read(&audio, buffer_audio, TAM_BUFFER_AUDIO, &bytesAudio);
+		fd_USB = f_read(&auidio, buffer_audio, TAM_BUFFER_AUDIO, &bytesAudio);
 
 		if(fd_USB == FR_OK){
 			//Si se ha acabado salimos de la función
@@ -292,17 +293,16 @@ void EnviarLetra(char* buffer_letra){
 	char t_deseado_str[TAM_STRING];
 
 	if(t_letra_actual == 0){
-		if(linea = "" || cambio_cancion == 1){
+		if(linea = "" || nueva_cancion == 1){
 			linea =  strtok(buffer_letra, "\n");
-			cambio_cancion = 0;
+			nueva_cancion = 0;
 		}
-		else{
+		else {
 			linea = strtok(buffer_letra, NULL);
-
-			//SACAR EL TIEMPO Y CONVERTIRLO
+		}
+		//SACAR EL TIEMPO Y CONVERTIRLO
 			t_deseado_str = strncpy(t_deseado_str,linea,2);
 			t_letra_deseado = (t_deseado_str[0]-'0')*10+(t_deseado_str[1]-'0');
-		}
 
 		lcd_gotoxy(&lcd1, 0, 1);
 		lcd_puts(&lcd1, linea);
@@ -336,34 +336,46 @@ void TIM6_IRQHandler(void) {
 
 	// Manejo del botón 1
 	void Button1Pressed(){
-	  if(estado==1){	// Botón 1 en selección de canción: avanza hacia atrás en la lista
-		FLAG_ANTERIOR = 1;  // Retroceder de canción
+	  switch(estado){
+		case 1:	// Botón 1 en estado 1: Subir en la lista
+		  	FLAG_ANTERIOR = 1;
+		  	break;
+		default:
+			break;
 	  }
-	  //else if(estado2)	// Botón 1 en reproducción de canción: nada
-		  //Restart(); // Se mantiene en estado de reproducción
-	  //else if(estado3)	// Botón 1 en reproducción parada: nada
-		// NADA
-}
+	}
 
 	// Manejo del botón 2
 	void Button2Pressed(){
-	  if(estado==1){	// Botón 2 en selección de canción: seleccionar
-		  Play(IndiceCanciones);
-	  }
-	  else if(estado==2){	// Botón 2 en reproducción de canción: pausar
-	  }
-	  else if(estado==3){	// Botón 2 en reproducción parada: Continuar (resume)
+	  switch(estado){
+		  case 1: // Botón 2 en estado 1: Seleccionar canción
+		  	nueva_canción = 1;
+		  	estado = 2;
+		  	break;
+		  case 2: // Botón 2 en estado 2: Pausar canción
+			  
+		  	break;
+		  case 3: // Botón 2 en estado 3: Reanudar canción (resume)
+			  
+		  	break;
+		  default:
+		  	break;
 	  }
 }
 
 	// Manejo del botón 3
 	void Button3Pressed(){
-	  if(estado==1){	// Botón 3 en selección de canción: avanza hacia delante en la lista
-		FLAG_SIGUIENTE = 1;  // AVanzar de canción
-	  }
-	  else if(estado==2){	// Botón 3 en reproducción de canción: regreso a selección
-	  }
-	  else if(estado==3){	// Botón 3 en reproducción parada: regreso a selección
+	  switch(estado){
+		  case 1: // Botón 3 en estado 1: Bajar en la lista
+			  FLAG_SIGUIENTE;
+			  break;
+		  case 2: // Botón 3 en estado 2: Regreso a selección de canción
+			  estado = 1;
+			  f_close(&texto);
+			  f_close(&auidio);
+			  break;
+		  default:
+			  break;
 	  }
 }
 
@@ -423,7 +435,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+uint8_t error;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -459,7 +471,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
@@ -474,11 +485,12 @@ int main(void)
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
 
-               HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+               	 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+		   
 		   if(MontarUSB() == 0){
 		   	estado = 1;
 			if(AbrirFicheroTexto("catalogo.txt", &texto)==0){
-				uint8_t error = LeerFicheroTexto(&texto, buffer_texto);
+				error = LeerFicheroTexto(&texto, buffer_texto);
 				f_close(&texto);
 
 				cat = GenerarCatalogo(buffer_texto);
@@ -489,36 +501,55 @@ int main(void)
            break;
 
            case 1: //Menu canciones USB - Como stop de cancion actual
-               printf("Songs list\n");
-                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
-                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-                 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+               	//printf("Songs list\n");
+        	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
 
-               HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+               	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+
+		cat = MostrarCatalogo(cat);
+		
+		 
                //Intriducir código LDC y micro
            break;
 
            case 2: //Play cancion seleccionada
-               printf("Play song\n");
+               //printf("Play song\n");
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
 
-               HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
-               //Intriducir código LDC y micro
+               	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+
+		if(nueva_cancion){
+			if(AbrirFichero(cat -> nombre_mp4, &auidio)!=0 || AbrirFichero(cat -> nombre_txt, &texto)!=0){
+				// Apertura correcta de fichero de audio y fichero de texto
+				if(LeerFicheroTexto(&texto, buffer_texto) == 0)
+					// Lee correctamente el fichero de texto
+					
+			}
+			else
+				estado = 3; // Estado de pausa para mostrar el mensaje de error
+			break;	
+		}
+		if (ReproducirFicheroSonido() == 0){
+			EnviarLetra(buffer_texto);
+		}
+               //Introducir código LDC y micro
            break;
 
            case 3: //Pause cancion seleccionada
-               printf("Pause song\n");
+               //printf("Pause song\n");
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
                  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
 
                HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
-               //Intriducir código LDC y micro
+               //Introducir código LDC y micro
            break;
 
            default: //Volver a pulsar un botón, la has liado
