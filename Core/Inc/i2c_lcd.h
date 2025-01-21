@@ -10,6 +10,9 @@
 	#include "stm32c0xx_hal.h"
 #endif
 
+#include "stdint.h"
+#include <stm32f4xx.h>
+
 /**
  * @brief Structure to hold LCD instance information
  */
