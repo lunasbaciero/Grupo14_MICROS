@@ -545,7 +545,7 @@ uint8_t error;
 		if(nueva_cancion){
 			if(AbrirFichero(cat -> nombre_mp4, &auidio)!=0 || AbrirFichero(cat -> nombre_txt, &texto)!=0){
 				// Apertura correcta de fichero de audio y fichero de texto
-				if(LeerFicheroTexto(&texto, buffer_texto) == 0)
+				if(LeerFichero(&texto, buffer_texto) == 0)
 					// Lee correctamente el fichero de texto
 					
 			}
