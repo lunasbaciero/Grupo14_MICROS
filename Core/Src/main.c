@@ -23,16 +23,30 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
+#include "i2c_lcd.h" //Librería de https://github.com/alixahedi/i2c-lcd-stm32?tab=readme-ov-file#usage
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+//Lista del catálogo
+typedef struct catalogo{
+	char nombre[TAM_STRING] = "";
+	char nombre_mp4[TAM_STRING] = "./audio/"; //nombre del archivo con extension .mp4 y path de la carpeta con el audio
+	char nombre_txt[TAM_STRING] = "./letra/"; //nombre del archivo con extension .txt y path de la carpeta con la letra
+	struct catalogo* siguiente = NULL;
+	struct catalogo* anterior = NULL;
+} catalogo;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define TAM_BUFFER_TEXT 1024
+#define TAM_BUFFER_AUDIO 1024
+#define TAM_STRING 100
 
 /* USER CODE END PD */
 
@@ -53,6 +67,24 @@ TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN PV */
 
+
+I2C_HandleTypeDef hi2c1;
+I2C_LCD_HandleTypeDef lcd1;
+
+//Lectura de USB
+FATFS FatFs;      // Instancia de FatFS
+
+FIL texto;          // Objeto de archivo para texto
+FIL auidio;			// Objeto de archivo para audio
+
+FRESULT fd_USB;     // Código de resultado de FatFS
+UINT bytesRead;		//Bytes leidos
+
+//Tiempo
+uint8_t t_letra_deseado; //tiempo que debe permanecer la letra (s)
+uint8_t t_letra_actual; //tiempo que lleva la letra en pantalla (s)
+uint8_t cambio_cancion; //Flag para indicar cambios de canción
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -67,10 +99,212 @@ void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
 
+//USB y ficheros
+uint8_t MontarUSB(void);
+uint8_t AbrirFicheroTexto(char* nombre_fichero);
+uint8_t LeerFicheroTexto(char* buffer); //No es responsable del envio por pantalla LCD
+uint8_t ReproducirFicheroSonido(void); //También lo envía por DMA a la salida de audio.
+
+//Procesado de información de ficheros de texto
+catalogo GenerarCatalogo(char* buffer_catalogo);
+void EliminarCatalogo(catalogo** cat);
+catalogo* MostrarCatalogo(catalogo cat);
+void EnviarLetra(char* buffer_letra);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+
+uint8_t MontarUSB(void){
+	fd_USB = f_mount(&FatFs, "", 0);  // Monta el dispositivo USB
+
+	if(fd_USB != FR_OK){
+		//Eviar mensaje por LCD avisando de que no se encuentra un LCD
+
+		lcd_gotoxy(&lcd1, 0, 1);
+		lcd_puts(&lcd1, "ERROR AL CONECTAR USB");
+
+		return 1; //Se considera 1 como error al montar el USB (Puede ser interesante cambiarlo por un enum)
+	}
+	return 0;
+}
+
+uint8_t AbrirFichero(char* nombre_fichero, FIL file){
+
+	fd_USB = f_open(&file, nombre_fichero, FA_READ);
+
+	if(fd_USB == FR_OK){
+		return 0;
+	}
+	//Mensaje de error al abrir archivo
+
+	lcd_gotoxy(&lcd1, 0, 1);
+	lcd_puts(&lcd1, "ERROR AL ABRIR ARCHIVO");
+
+	return 2; //Se considera 2 como error al abrir archivo (Puede ser interesante cambiarlo por un enum)
+}
+
+uint8_t LeerFicheroTexto(char* nombre_fichero, char* buffer){
+
+	fd_USB = f_read(&file, buffer, sizeof(buffer) - 1, &bytesRead);
+	if(fd_USB == FR_OK){
+		buffer[bytesRead] = '\0';
+		return 0;
+	}
+	lcd_gotoxy(&lcd1, 0, 1);
+	lcd_puts(&lcd1, "ERROR AL LEER ARCHIVO");
+
+	return 3; //Se considera 3 como error al leer el archivo (Puede ser interesante cambiarlo por un enum)
+
+}
+
+uint8_t ReproducirFicheroSonido(){
+	static unsigned int bytesAudio = 0;
+	static uint16_t buffer_audio[TAM_BUFFER_AUDIO];
+
+	if(dma_transfer_complete_flag){
+		fd_USB = f_read(&audio, buffer_audio, TAM_BUFFER_AUDIO, &bytesAudio);
+
+		if(fd_USB == FR_OK){
+			//Si se ha acabado salimos de la función
+			if(bytesAudio == 0){
+				return 0;
+			}
+			//Si no, enviamos por dma
+			HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, buffer_audio, TAM_BUFFER_AUDIO, DAC_ALIGN_12B_R);
+		}
+
+		//MENSAJE ERROR
+		lcd_gotoxy(&lcd1, 0, 1);
+		lcd_puts(&lcd1, "ERROR AL LEER ARCHIVO");
+
+		return 3;
+	}
+	return 0;
+}
+
+catalogo* GenerarCatalogo(char* buffer_catalogo){
+	catalogo* cat, cat_anterior;
+	catalogo* primer_cat;
+
+	char n[TAM_STRING];
+
+	//Creamos la lista
+
+	n = strtok(texto_copia, "\n");
+	while (n != NULL) {
+
+		if(cat == NULL){
+			cat = malloc(sizeof(catalogo));
+			primer_cat = cat;
+		}
+		else{
+			cat_anterior = cat;
+
+			cat->siguiente = malloc(sizeof(catalogo));
+			cat = cat->siguiente;
+
+			cat->anterior = cat_anterior;
+		}
+
+		//Asignacion en la lista circular
+		cat->nombre = n;
+
+		cat->nombre_mp4 = strcat(cat->nombre_mp4,n);
+		cat->nombre_mp4 = strcat(cat->nombre_mp4,".mp4");
+
+		cat->nombre_txt = strcat(cat->nombre_txt,n);
+		cat->nombre_txt = strcat(cat->nombre_txt,".txt");
+
+	    // Obtener la siguiente línea
+	    n = strtok(NULL, "\n");
+	}
+
+	cat->siguiente = primer_cat;
+	primer_cat->anterior = cat;
+
+	return primer_cat;
+}
+
+void EliminarCatalogo(catalogo** cat){
+	catalogo* siguiente, actual;
+
+	//Deshacemos primero la estructura circular
+	actual = *cat;
+	siguiente = actual->anterior;
+
+	siguiente->siguiente = NULL;
+	actual->anterior = NULL;
+
+	while(actual != NULL){
+		siguiente = actual->siguiente;
+		free(actual);
+		actual = siguiente;
+	}
+	*cat = NULL;
+}
+
+catalogo* MostrarCatalogo(catalogo* cat){
+
+	catalogo* primer = cat;
+
+	if(FLAG_SIGUIENTE){
+		cat = cat->siguiente;
+		FLAG_SIGUIENTE = 0;
+	}
+
+	if(FLAG_ANTERIOR){
+		cat = cat->anterior;
+		FLAG_ANTERIOR = 0;
+	}
+
+	if(cat == NULL){
+		cat = primer;
+	}
+
+	lcd_gotoxy(&lcd1, 0, 1);
+	lcd_puts(&lcd1, cat->nombre);
+
+	return cat;
+}
+
+void EnviarLetra(char* buffer_letra){
+
+	static char linea[TAM_STRING] = "";
+	char t_deseado_str[TAM_STRING];
+
+	if(t_letra_actual == 0){
+		if(linea = "" || cambio_cancion == 1){
+			linea =  strtok(buffer_letra, "\n");
+			cambio_cancion = 0;
+		}
+		else{
+			linea = strtok(buffer_letra, NULL);
+
+			//SACAR EL TIEMPO Y CONVERTIRLO
+			t_deseado_str = strncpy(t_deseado_str,linea,2);
+			t_letra_deseado = (t_deseado_str[0]-'0')*10+(t_deseado_str[1]-'0');
+		}
+
+		lcd_gotoxy(&lcd1, 0, 1);
+		lcd_puts(&lcd1, linea);
+	}
+	else if(t_letra_actual >= t_letra_deseado){
+		t_letra_actual = 0;
+	}
+}
+
+//Usar HAL_TIM_BASE_START para encenderlo al entrar en el estado ded la canción
+void TIM6_IRQHandler(void) {
+    HAL_TIM_IRQHandler(&htim6);  // Llamada al manejador de interrupción
+
+    tiempo_actual += 1;
+
+}
+
 
 /* USER CODE END 0 */
 
