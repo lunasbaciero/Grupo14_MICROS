@@ -489,7 +489,7 @@ int main(void)
 
 
     /* USER CODE BEGIN 3 */
-  }
+  
 	         switch(estado){
         case 0: //Main menu
             printf("Main menu\n");
