@@ -32,11 +32,11 @@
 
 //Lista del catálogo
 typedef struct catalogo{
-	char nombre[TAM_STRING] = "";
-	char nombre_mp4[TAM_STRING] = "./audio/"; //nombre del archivo con extension .mp4 y path de la carpeta con el audio
-	char nombre_txt[TAM_STRING] = "./letra/"; //nombre del archivo con extension .txt y path de la carpeta con la letra
-	struct catalogo* siguiente = NULL;
-	struct catalogo* anterior = NULL;
+	char nombre[TAM_STRING];
+	char nombre_mp4[TAM_STRING]; //nombre del archivo con extension .mp4 y path de la carpeta con el audio
+	char nombre_txt[TAM_STRING]; //nombre del archivo con extension .txt y path de la carpeta con la letra
+	struct catalogo* siguiente;
+	struct catalogo* anterior;
 } catalogo;
 
 /* USER CODE END PTD */
@@ -85,7 +85,7 @@ uint8_t t_letra_deseado; //tiempo que debe permanecer la letra (s)
 uint8_t t_letra_actual; //tiempo que lleva la letra en pantalla (s)
 volatile uint8_t nueva_cancion; //Flag para indicar cambios de canción
 char buffer_texto[TAM_BUFFER_TEXT];
-catalogo *cat;
+catalogo *cat = NULL;
 
 // banderas
 volatile uint8_t FLAG_SIGUIENTE = 0;
@@ -114,19 +114,18 @@ uint8_t LeerFicheroTexto(FIL* file, char* buffer); //No es responsable del envio
 uint8_t ReproducirFicheroSonido(void); //También lo envía por DMA a la salida de audio.
 
 //Procesado de información de ficheros de texto
-catalogo GenerarCatalogo(char* buffer_catalogo);
+catalogo* GenerarCatalogo(char* buffer_catalogo);
 void EliminarCatalogo(catalogo** cat);
-catalogo* MostrarCatalogo(catalogo cat);
+catalogo* MostrarCatalogo(catalogo* cat);
 void EnviarLetra(char* buffer_letra);
 
 // Botones y potenciómetro
 void Button1Pressed(void);
 void Button2Pressed(void);
 void Button3Pressed(void);
-void SetEstado(uint8_t e1, uint8_t e2, uint8_t e3); // Sustituir por máquina de estados (?
 void LeerPotenciometro(void);
 void setvolumen(uint8_t volume);
-int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number)
+int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -215,6 +214,13 @@ catalogo* GenerarCatalogo(char* buffer_catalogo){
 
 		if(cat == NULL){
 			cat = malloc(sizeof(catalogo));
+			
+			cat->nombre = "";
+			cat->nombre_mp4 = "./audio/";
+			cat->nombre_txt = "./letra/";
+			cat->siguiente = NULL;
+			cat->anterior = NULL;
+			
 			primer_cat = cat;
 		}
 		else{
