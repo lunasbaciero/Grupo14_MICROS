@@ -94,7 +94,7 @@ volatile int button_int=0;
 volatile estado = 0;
 volatile uint16_t valpot=0;
 volatile uint8_t dma_transfer_complete_flag;
-volatile float salida_volumen=0.0;
+volatile uint32_t salida_volumen=0;
 
 /* USER CODE END PV */
 
@@ -450,9 +450,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	  void setvolumen(){
 		  float volumen = (float)valpot/4095.0;
 
-		  //salida_volumen = (uint16_t)(volumen * 4095);
-		  salida_volumen = volumen;
-		  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, volumen);
+		  salida_volumen = (uint32_t)(volumen * 4095);
+		  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, salida_volumen);
 		  HAL_Delay(10);
 	  }
 
