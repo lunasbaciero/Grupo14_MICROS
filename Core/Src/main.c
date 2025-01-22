@@ -68,8 +68,6 @@ TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN PV */
 
-
-I2C_HandleTypeDef hi2c1;
 I2C_LCD_HandleTypeDef lcd1;
 
 //Lectura de USB
@@ -109,6 +107,7 @@ static void MX_ADC1_Init(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
+void init_lcds(void);
 
 //USB y ficheros
 uint8_t MontarUSB(void);
@@ -122,6 +121,7 @@ void EliminarCatalogo(catalogo** cat);
 catalogo* MostrarCatalogo(catalogo* cat);
 void EnviarLetra(char* buffer_letra);
 
+
 // Botones y potenciómetro
 void Button1Pressed(void);
 void Button2Pressed(void);
@@ -134,7 +134,11 @@ int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_n
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-
+void init_lcds(void){
+	lcd1.hi2c = &hi2c1;     // hi2c1 is your I2C handler
+    	lcd1.address = 0x4E;    // I2C address for the first LCD
+    	lcd_init(&lcd1);        // Initialize the first LCD
+}
 
 uint8_t MontarUSB(void){
 	fd_USB = f_mount(&FatFs, "", 0);  // Monta el dispositivo USB
@@ -458,6 +462,8 @@ uint8_t error;
   MX_FATFS_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
+  init_lcds();
+	
 
   /* USER CODE END 2 */
 
