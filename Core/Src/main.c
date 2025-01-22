@@ -341,15 +341,20 @@ void TIM6_IRQHandler(void) {
 
 	// Definición de funciones declaradas
 	void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	  if (GPIO_Pin == GPIO_PIN_0){ 		// Botón 1: Configurado en PA0
-		  Button1Pressed();
-	  }
-	  else if (GPIO_Pin == GPIO_PIN_1){	// Botón 2: Configurado en PA1
-		  Button2Pressed();
-	  }
-	  else if (GPIO_Pin == GPIO_PIN_2){	// Botón 3: Configurado en PA2
-		  Button3Pressed();
-	  }
+	  static uint32_t t_button = 0;
+
+	if(HAL_GetTick() - t_button > 10){
+		if (GPIO_Pin == GPIO_PIN_0){ 		// Botón 1: Configurado en PA0
+		  	Button1Pressed();
+	  	}
+	 	else if (GPIO_Pin == GPIO_PIN_1){	// Botón 2: Configurado en PA1
+		  	Button2Pressed();
+	  	}
+	  	else if (GPIO_Pin == GPIO_PIN_2){	// Botón 3: Configurado en PA2
+		  	Button3Pressed();
+	  	}
+		t_button = HAL_GetTick();
+	}
 }
 
 	// Manejo del botón 1
@@ -413,35 +418,6 @@ void TIM6_IRQHandler(void) {
 		  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, salida_volumen);
 		  HAL_Delay(10);
 	  }
-
-
-	int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number){
-		static uint8_t button_count=0;
-		static int counter=0;
-
-		if (*button_int==1){
-			if (button_count==0) {
-				counter=HAL_GetTick();
-				button_count++;
-			}
-			if (HAL_GetTick()-counter>=20){
-				counter=HAL_GetTick();
-				if (HAL_GPIO_ReadPin(GPIO_port, GPIO_number)!=1){
-					button_count=1;
-				}
-				else{
-					button_count++;
-				}
-				if (button_count==4){ //Periodo antirebotes
-					button_count=0;
-					*button_int=0;
-					return 1;
-				}
-			}
-		}
-		return 0;
-	}
-
 
 /* USER CODE END 0 */
 
