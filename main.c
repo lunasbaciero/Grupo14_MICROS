@@ -424,7 +424,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	void Button3Pressed(){
 	  switch(estado){
 		  case 1: // Botón 3 en estado 1: Bajar en la lista
-			  FLAG_SIGUIENTE;
+			  FLAG_SIGUIENTE = 1;
 			  break;
 		  case 2: // Botón 3 en estado 2: Regreso a selección de canción
 			  estado = 1;
