@@ -129,7 +129,6 @@ void Button2Pressed(void);
 void Button3Pressed(void);
 void LeerPotenciometro(void);
 void setvolumen();
-int debouncer(volatile int* button_int, GPIO_TypeDef* GPIO_port, uint16_t GPIO_number);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
