@@ -410,10 +410,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		  	estado = 2;
 		  	break;
 		  case 2: // Botón 2 en estado 2: Pausar canción
-			  
+			estado = 3;
 		  	break;
 		  case 3: // Botón 2 en estado 3: Reanudar canción (resume)
-			  
+			estado = 2;
 		  	break;
 		  default:
 		  	break;
