@@ -617,7 +617,7 @@ uint8_t error;
                //Introducir código LDC y micro
            break;
 
-           default: //Volver a pulsar un botón, la has liado
+           default: 
            break;
        }
   }
