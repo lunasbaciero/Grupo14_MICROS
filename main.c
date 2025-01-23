@@ -162,7 +162,7 @@ uint8_t MontarUSB(void){
 		break;
 	default:
 		lcd_gotoxy(&lcd1, 0, 0);
-		lcd_puts(&lcd1, "tonto");
+		lcd_puts(&lcd1, "default");
 	}
 
 
