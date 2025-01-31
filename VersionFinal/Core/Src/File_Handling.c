@@ -23,6 +23,8 @@
 #include "usb_host.h"
 
 extern FILELIST_FileTypeDef FileList;
+extern FILELIST_FileTypeDef TxtList;
+
 extern ApplicationTypeDef Appli_state;
 
 extern char USBHPath[4];   /* USBH logical drive path */
@@ -73,6 +75,12 @@ FRESULT AUDIO_StorageParse(void)
             FileList.file[FileList.ptr].type = FILETYPE_FILE;
             FileList.ptr++;
           }
+          if((strstr(fn, "txt")) || (strstr(fn, "TXT")))
+                    {
+                      strncpy((char *)TxtList.file[TxtList.ptr].name, (char *)fn, FILEMGR_FILE_NAME_SIZE);
+                      TxtList.file[TxtList.ptr].type = FILETYPE_FILE;
+                      TxtList.ptr++;
+                    }
         }
       }
     }

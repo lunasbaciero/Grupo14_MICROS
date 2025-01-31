@@ -68,7 +68,7 @@
 #include "File_Handling.h"
 #include "AUDIO.h"
 
-static uint32_t uwVolume = 75;  // between 0 to 100
+static uint32_t uwVolume;  // between 0 to 100
 
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> NO CHANGES AFTER THIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
@@ -86,10 +86,13 @@ AUDIO_PLAYBACK_StateTypeDef AudioState;
 static int16_t FilePos = 0;
 
 FILELIST_FileTypeDef FileList;
+FILELIST_FileTypeDef TxtList;
 
 WAVE_FormatTypeDef WaveFormat;
 
 FIL WavFile;
+FIL TxtFile;
+
 
 /* Private function prototypes -----------------------------------------------*/
 uint8_t PlayerInit(uint32_t AudioFreq)
@@ -112,7 +115,7 @@ uint8_t PlayerInit(uint32_t AudioFreq)
   */ 
 AUDIO_ErrorTypeDef AUDIO_PLAYER_Start(uint8_t idx)
 {
-  int bytesread;
+  UINT bytesread;
 
   f_close(&WavFile);
   if(AUDIO_GetWavObjectNumber() > idx)
@@ -162,7 +165,8 @@ AUDIO_ErrorTypeDef AUDIO_PLAYER_Process(bool isLoop)
     if(BufferCtl.fptr >= WaveFormat.FileSize)
     {
       AUDIO_OUT_Stop(CODEC_PDWN_SW);
-      AudioState = AUDIO_STATE_NEXT;
+      AudioState = AUDIO_STATE_STOP;
+      //AudioState = AUDIO_STATE_NEXT;
     }
     
     if(BufferCtl.state == BUFFER_OFFSET_HALF)
@@ -191,8 +195,9 @@ AUDIO_ErrorTypeDef AUDIO_PLAYER_Process(bool isLoop)
     
   case AUDIO_STATE_STOP:
     AUDIO_OUT_Stop(CODEC_PDWN_SW);
-    AudioState = AUDIO_STATE_IDLE; 
+	AudioState = AUDIO_STATE_IDLE;
     audio_error = AUDIO_ERROR_IO;
+
     break;
     
   case AUDIO_STATE_NEXT:
